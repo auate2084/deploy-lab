@@ -1,0 +1,31 @@
+name: Test S3 upload
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Connect to AWS
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Upload test ZIP
+        env:
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+        run: |
+          printf '%s\n' "$GITHUB_SHA" > REVISION
+          zip -q test.zip hello.txt REVISION
+          aws s3 cp test.zip "s3://$S3_BUCKET/releases/test/$GITHUB_SHA.zip"
